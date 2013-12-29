@@ -1,0 +1,11 @@
+commitdata.csv
+*.png
+*.pdf
+*.svg
+repostats
+.*.swp
+.DS_Store
+bitbucket.org
+code.google.com
+github.com
+
