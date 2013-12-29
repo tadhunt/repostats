@@ -11,7 +11,7 @@ fetch:
 	go get code.google.com/p/plotinum/vg
 
 data:
-	-if [ -z "${REPO}" ] ; then echo "set REPO=/path/to/git/repo" 1>&2; exit 1; fi
+	@if [ -z "${REPO}" ] ; then echo "set REPO=/path/to/git/repo" 1>&2; exit 1; fi
 	(cd ${REPO} && git log --reverse --numstat --date=short) | awk -f log-massage.awk | sort > commitdata.csv
 
 clean:
