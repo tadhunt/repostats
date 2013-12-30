@@ -26,7 +26,7 @@ type Record struct {
 }
 
 type Nloc struct {
-	Date string
+	Date time.Time
 	Nloc int64
 }
 
@@ -205,7 +205,7 @@ func main() {
 		}
 
 		for curdate.Before(newdate) { // days without data are flat
-			n := Nloc{curdate.String(), totnloc}
+			n := Nloc{curdate, totnloc}
 			nloc = append(nloc, n)
 			curdate = curdate.AddDate(0, 0, 1)
 		}
@@ -218,7 +218,7 @@ func main() {
 	if curnloc != 0 {
 		totnloc += curnloc
 
-		n := Nloc{curdate.String(), totnloc}
+		n := Nloc{curdate, totnloc}
 		nloc = append(nloc, n)
 
 		curnloc = 0
@@ -226,7 +226,7 @@ func main() {
 
 	fmt.Printf("Total Days: %d\n", len(nloc))
 
-	fmt.Printf("Total NLOC %v %s through %s\n", totnloc, nloc[0].Date, nloc[len(nloc)-1].Date)
+	fmt.Printf("Total NLOC %v %v through %v\n", totnloc, nloc[0].Date, nloc[len(nloc)-1].Date)
 
 	err = chart_draw_nloc(nloc)
 	if err != nil {
