@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -58,8 +59,8 @@ func parsedate(s string) (time.Time, error) {
 	return time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.Local), nil
 }
 
-func reader_setup() (*csv.Reader, error) {
-	file, err := os.Open("commitdata.csv")
+func reader_setup(inpath string) (*csv.Reader, error) {
+	file, err := os.Open(inpath)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +100,11 @@ func record_get(infile *csv.Reader) (*Record, error) {
 	return &r, nil
 }
 
-func chart_draw_pchg(nloc []Nloc) error {
+func chart_draw_pchg(path string, nloc []Nloc, span int) error {
 	var v plotter.Values
 
-	for i := 7; i < len(nloc); i += 7 {
-		start := float64(nloc[i-7].Nloc)
+	for i := span; i < len(nloc); i += span {
+		start := float64(nloc[i-span].Nloc)
 		cur := float64(nloc[i].Nloc)
 
 		var pinc float64
@@ -134,10 +135,10 @@ func chart_draw_pchg(nloc []Nloc) error {
 
 	p.Add(bc)
 
-	return p.Save(10, 5, "pcnt-chg-over-time.pdf")
+	return p.Save(10, 5, path)
 }
 
-func chart_draw_nloc(nloc []Nloc) error {
+func chart_draw_nloc(path string, nloc []Nloc) error {
 	pts := make(plotter.XYs, len(nloc))
 	for i := 0; i < len(nloc); i++ {
 		pt := &pts[i]
@@ -158,11 +159,26 @@ func chart_draw_nloc(nloc []Nloc) error {
 
 	p.Add(lc)
 
-	return p.Save(10, 5, "nloc-over-time.pdf")
+	return p.Save(10, 5, path)
 }
 
 func main() {
-	infile, err := reader_setup()
+	var inpath string
+	var nlocfile string
+	var pcntfile string
+	var pcntspan int
+
+	flag.StringVar(&inpath, "infile", "", "Input path to .csv")
+	flag.StringVar(&nlocfile, "nloc", "", "Output path to num lines of code over time chart (png, pdf, svg, etc)")
+	flag.StringVar(&pcntfile, "pcnt", "", "Output path to %change over time chart (png, pdf, svg, etc)")
+	flag.IntVar(&pcntspan, "pspan", 7, "Number of days per data point in the %change chart")
+	flag.Parse()
+
+	if inpath == "" {
+		panic(errors.New("infile required"))
+	}
+
+	infile, err := reader_setup(inpath)
 	if err != nil {
 		panic(err)
 	}
@@ -225,16 +241,19 @@ func main() {
 	}
 
 	fmt.Printf("Total Days: %d\n", len(nloc))
-
 	fmt.Printf("Total NLOC %v %v through %v\n", totnloc, nloc[0].Date, nloc[len(nloc)-1].Date)
 
-	err = chart_draw_nloc(nloc)
-	if err != nil {
-		panic(err)
+	if nlocfile != "" {
+		err = chart_draw_nloc(nlocfile, nloc)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	err = chart_draw_pchg(nloc)
-	if err != nil {
-		panic(err)
+	if pcntfile != "" {
+		err = chart_draw_pchg(pcntfile, nloc, pcntspan)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

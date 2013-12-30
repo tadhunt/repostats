@@ -1,6 +1,6 @@
 all:
 	go build repostats.go
-	./repostats
+	./repostats -infile=commitdata.csv -nloc="nloc-over-time.pdf" -pcnt="pcnt-chg-over-time.pdf" -pspan=7
 	open nloc-over-time.pdf pcnt-chg-over-time.pdf
 
 fetch:
