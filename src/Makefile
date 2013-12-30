@@ -1,8 +1,7 @@
 all:
 	go build repostats.go
 	./repostats
-	open nloc-over-time.svg
-	open pcnt-chg-over-time.svg
+	open nloc-over-time.pdf pcnt-chg-over-time.pdf
 
 fetch:
 	go get code.google.com/p/plotinum/plot

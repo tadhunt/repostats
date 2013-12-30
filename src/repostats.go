@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/csv"
-	"os"
-	"io"
-	"fmt"
 	"errors"
+	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,17 +17,17 @@ import (
 )
 
 type Record struct {
-	Date	string
-	Nins	int64
-	Ndel	int64
-	Commit	string
-	Author	string
-	File	string
+	Date   string
+	Nins   int64
+	Ndel   int64
+	Commit string
+	Author string
+	File   string
 }
 
 type Nloc struct {
-	Date	string
-	Nloc	int64
+	Date string
+	Nloc int64
 }
 
 func parsedate(s string) (time.Time, error) {
@@ -57,7 +57,6 @@ func parsedate(s string) (time.Time, error) {
 
 	return time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.Local), nil
 }
-
 
 func reader_setup() (*csv.Reader, error) {
 	file, err := os.Open("commitdata.csv")
@@ -109,26 +108,24 @@ func chart_draw_pchg(nloc []Nloc) error {
 
 		var pinc float64
 		if start < cur {
-			pinc = 100 - (start / cur) * 100.0
+			pinc = 100 - (start/cur)*100.0
 		} else {
-			pinc = 100 - (cur / start) * 100.0
+			pinc = 100 - (cur/start)*100.0
 		}
-	
-fmt.Printf("pinc %v\n", pinc)
 
 		v = append(v, pinc)
 	}
-		
-        w := vg.Points(2)
 
-        bc, err := plotter.NewBarChart(v, w)
-        if err != nil {
-                return err
-        }
+	w := vg.Points(2)
 
-        bc.LineStyle.Width = vg.Length(0)
-        bc.Color = plotutil.Color(0)
-        bc.Offset = -w
+	bc, err := plotter.NewBarChart(v, w)
+	if err != nil {
+		return err
+	}
+
+	bc.LineStyle.Width = vg.Length(0)
+	bc.Color = plotutil.Color(0)
+	bc.Offset = -w
 
 	p, err := plot.New()
 	if err != nil {
@@ -137,9 +134,8 @@ fmt.Printf("pinc %v\n", pinc)
 
 	p.Add(bc)
 
-	return p.Save(10, 5, "pcnt-chg-over-time.png")
+	return p.Save(10, 5, "pcnt-chg-over-time.pdf")
 }
-		
 
 func chart_draw_nloc(nloc []Nloc) error {
 	pts := make(plotter.XYs, len(nloc))
@@ -162,9 +158,8 @@ func chart_draw_nloc(nloc []Nloc) error {
 
 	p.Add(lc)
 
-	return p.Save(10, 5, "nloc-over-time.png")
+	return p.Save(10, 5, "nloc-over-time.pdf")
 }
-
 
 func main() {
 	infile, err := reader_setup()
@@ -176,7 +171,7 @@ func main() {
 	var curdate time.Time
 	var newdate time.Time
 	var curnloc int64 = 0
-	var nloc[]Nloc
+	var nloc []Nloc
 	first := true
 	for {
 		r, err := record_get(infile)
@@ -187,7 +182,7 @@ func main() {
 			break
 		}
 
-		if first {					// first record, set start date
+		if first { // first record, set start date
 			curdate, err = parsedate(r.Date)
 			if err != nil {
 				panic(err)
@@ -205,11 +200,11 @@ func main() {
 		}
 
 		if newdate.Equal(curdate) {
-			curnloc += r.Nins - r.Ndel			// accumulate to have one data point per day
+			curnloc += r.Nins - r.Ndel // accumulate to have one data point per day
 			continue
 		}
 
-		for curdate.Before(newdate) {				// days without data are flat
+		for curdate.Before(newdate) { // days without data are flat
 			n := Nloc{curdate.String(), totnloc}
 			nloc = append(nloc, n)
 			curdate = curdate.AddDate(0, 0, 1)
