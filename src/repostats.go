@@ -103,18 +103,34 @@ func record_get(infile *csv.Reader) (*Record, error) {
 func chart_draw_pchg(path string, nloc []Nloc, span int) error {
 	var v plotter.Values
 
-	for i := span; i < len(nloc); i += span {
-		start := float64(nloc[i-span].Nloc)
-		cur := float64(nloc[i].Nloc)
+	st := time.Unix(0, 0)
+	et := st.AddDate(0, 0, span)
 
-		var pinc float64
-		if start < cur {
-			pinc = 100 - (start/cur)*100.0
+	sn := float64(nloc[0].Nloc)
+
+	var now time.Time
+	var pinc float64
+	for i := 0; i < len(nloc); i++ {
+		now = nloc[i].Date
+		if now.Before(et) {
+			continue
+		}
+
+		cn := float64(nloc[i].Nloc)
+
+		if sn < cn {
+			pinc = 100 - (sn / cn) * 100.0
+		} else if (sn > cn) {
+			pinc = 100 - (cn / sn) * 100.0
 		} else {
-			pinc = 100 - (cur/start)*100.0
+			pinc = 0.0
 		}
 
 		v = append(v, pinc)
+
+		sn = cn
+		st = now
+		et = st.AddDate(0, 0, span)
 	}
 
 	w := vg.Points(2)
