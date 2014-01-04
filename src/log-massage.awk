@@ -86,7 +86,9 @@ BEGIN {
 	ndeletions = $2
 	file = $0
 	sub(/^[0-9]+[ 	]+[0-9]+[ 	]+/, "", file)	# easier this way because the filename might contain spaces
+
 	gsub(/"/, "'", file)
+	gsub(/"/, "'", author)
 
 	if(ninsertions > 0 || ndeletions > 0) {
 		printf("\"%s\",%d,%d,\"%s\",\"%s\",\"%s\"\n",
