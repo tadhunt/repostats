@@ -14,7 +14,7 @@ fetch:
 #
 data:
 	@if [ -z "${REPO}" ] ; then echo "set REPO=/path/to/git/repo" 1>&2; exit 1; fi
-	(cd ${REPO} && git log --reverse --numstat --date=short) | LC_ALL=C awk -f log-massage.awk | sort > commitdata.csv
+	(cd ${REPO} && git log --reverse --numstat --date=short) | awk -f log-massage.awk | LC_ALL=C sort > commitdata.csv
 
 clean:
 	rm -f repostats *.svg *.png *.pdf commitdata.csv
