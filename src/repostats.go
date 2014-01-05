@@ -69,6 +69,11 @@ func reader_setup(inpath string) (*csv.Reader, error) {
 	return reader, nil
 }
 
+//
+// Parses csv records with the following columns:
+//
+//	date, number-of-lines-inserted, number-of-lines-deleted, commit-hash, author, filename
+//
 func record_get(infile *csv.Reader) (*Record, error) {
 	line, err := infile.Read()
 	if err == io.EOF {
@@ -100,7 +105,7 @@ func record_get(infile *csv.Reader) (*Record, error) {
 	return &r, nil
 }
 
-func chart_draw_pchg(path string, nloc []Nloc, span int) error {
+func chart_draw_pchg(path string, nloc []Nloc, span int, width float64, height float64) error {
 	var v plotter.Values
 
 	st := time.Unix(0, 0)
@@ -151,10 +156,10 @@ func chart_draw_pchg(path string, nloc []Nloc, span int) error {
 
 	p.Add(bc)
 
-	return p.Save(10, 5, path)
+	return p.Save(width, height, path)
 }
 
-func chart_draw_nloc(path string, nloc []Nloc) error {
+func chart_draw_nloc(path string, nloc []Nloc, width float64, height float64) error {
 	pts := make(plotter.XYs, len(nloc))
 	for i := 0; i < len(nloc); i++ {
 		pt := &pts[i]
@@ -175,7 +180,7 @@ func chart_draw_nloc(path string, nloc []Nloc) error {
 
 	p.Add(lc)
 
-	return p.Save(10, 5, path)
+	return p.Save(width, height, path)
 }
 
 func main() {
@@ -183,11 +188,15 @@ func main() {
 	var nlocfile string
 	var pcntfile string
 	var pcntspan int
+	var width float64
+	var height float64
 
 	flag.StringVar(&inpath, "infile", "", "Input path to .csv")
 	flag.StringVar(&nlocfile, "nloc", "", "Output path to num lines of code over time chart (png, pdf, svg, etc)")
 	flag.StringVar(&pcntfile, "pcnt", "", "Output path to %change over time chart (png, pdf, svg, etc)")
 	flag.IntVar(&pcntspan, "pspan", 7, "Number of days per data point in the %change chart")
+	flag.Float64Var(&width, "width", 10.0, "Chart width (inches)")
+	flag.Float64Var(&height, "height", 7.5, "Chart height (inches)")
 	flag.Parse()
 
 	if inpath == "" {
@@ -260,14 +269,14 @@ func main() {
 	fmt.Printf("Total NLOC %v %v through %v\n", totnloc, nloc[0].Date, nloc[len(nloc)-1].Date)
 
 	if nlocfile != "" {
-		err = chart_draw_nloc(nlocfile, nloc)
+		err = chart_draw_nloc(nlocfile, nloc, width, height)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	if pcntfile != "" {
-		err = chart_draw_pchg(pcntfile, nloc, pcntspan)
+		err = chart_draw_pchg(pcntfile, nloc, pcntspan, width, height)
 		if err != nil {
 			panic(err)
 		}
