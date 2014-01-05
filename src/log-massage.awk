@@ -1,34 +1,9 @@
 #!/bin/awk
-# commit 989fb6102add218589e8779c76fd61f91e113684
-# Author: Tad Hunt <tadhunt@tad-hunts-macbook-pro.local>
-# Date:   2009-11-30
-# 
-#     ignore objects
-# 
-# 4       0       .gitignore
-# 
-# commit 54f97a5baf887f0d2a73745efaa0a647ed20512e
-# Author: Tad Hunt <tadhunt@tad-hunts-macbook-pro.local>
-# Date:   2009-11-30
-# 
-#     reorg & add pitch
-# 
-# 0       46      Makefile
-# 0       62      bwcalc.c
-# 0       32      dedupgain.sh
-# 0       56      dedupgaintree.sh
-# 0       391     sha1block.c
-# 0       73      sha1speed.c
-# 46      0       src/Makefile
-# 62      0       src/bwcalc.c
-# 32      0       src/dedupgain.sh
-# 56      0       src/dedupgaintree.sh
-# 391     0       src/sha1block.c
-# 73      0       src/sha1speed.c
-# 
-# commit 509aff7e53df7406749274d943ed573a0a78af02
-# ...
-# 
+#
+# This script parses the git log output from the following git command, and turns it into csv
+#
+#	git log --reverse --numstat --date=short
+#
 BEGIN {
 	stderr = "/dev/stderr"
 
@@ -37,7 +12,6 @@ BEGIN {
 #		"Number of Insertions",
 #		"Number of Deletions",
 #		"Author",
-#		"Date",
 #		"Filename")
 
 	last = "none"
