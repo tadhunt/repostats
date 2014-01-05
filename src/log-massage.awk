@@ -42,17 +42,17 @@ BEGIN {
 /^Merge:[ 	].*/ {
 	ismerge = 1
 	last = "merge"
-	next						# don't track merge history
+	next
 }
 
 /^[ 	]+.*/ {
 	last = "logmsg"
-	next						# don't track log message
+	next
 }
 
 /^-[ 	]+-[ 	]+.*/ {
 	last = "binary"
-	next						# don't track binary files
+	next
 }
 
 /^[0-9]+[ 	]+[0-9]+[ 	]+.*/ {
