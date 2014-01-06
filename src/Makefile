@@ -40,17 +40,18 @@ linux: all linux/linux-commitdata.csv
 #
 # So this funkiness elides these commits from the data
 
-linux/linux-commitdata.csv:
-	test -d linux || mkdir linux
+commitdata.csv:
 	${MAKE} data
-	awk '
-		/224426f168aa4af3dcb628e6edaa824d32d60e6f/ ||
-		/a27ac38efd6dc6dccebfc9bcc475ab4aa5fc4a56/ ||
-		/09f2724a786f76475ef2985cf84f5359c553aade/ ||
-		/12ca45fea91cfbb09df828bea958b47348caee6d/ {
-			next
-		}
-		{
-			 print $0
-		}
+
+linux/linux-commitdata.csv: commitdata.csv
+	test -d linux || mkdir linux
+	awk '	/224426f168aa4af3dcb628e6edaa824d32d60e6f/ ||	\
+		/a27ac38efd6dc6dccebfc9bcc475ab4aa5fc4a56/ ||	\
+		/09f2724a786f76475ef2985cf84f5359c553aade/ ||	\
+		/12ca45fea91cfbb09df828bea958b47348caee6d/ {	\
+			next					\
+		}						\
+		{						\
+			 print $0				\
+		}						\
 	' commitdata.csv > linux/linux-commitdata.csv
