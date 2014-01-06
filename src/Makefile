@@ -1,7 +1,5 @@
 all:
 	go build repostats.go
-	./repostats -infile=commitdata.csv -nloc="nloc-over-time.pdf" -pcnt="pcnt-chg-over-time.pdf" -pspan=7
-	open nloc-over-time.pdf pcnt-chg-over-time.pdf
 
 fetch:
 	go get code.google.com/p/plotinum/plot
@@ -18,3 +16,41 @@ data:
 
 clean:
 	rm -f repostats *.svg *.png *.pdf commitdata.csv
+
+#
+# Valid linux data seems to start about 1,309 days from the first commit
+# Note that 
+linux: all linux/linux-commitdata.csv
+	./repostats \
+		-infile=linux/linux-commitdata.csv \
+		-nloc="linux/nloc-over-time.pdf" \
+		-pcnt="linux/pcnt-chg-over-time.pdf" \
+		-pspan=7 \
+		-codebase="the Linux kernel" \
+		-firstday=1309
+	open linux/nloc-over-time.pdf linux/pcnt-chg-over-time.pdf
+
+#
+# Linux kernel commit history has some commits with screwed up dates:
+#
+#	1970-01-01	224426f168aa4af3dcb628e6edaa824d32d60e6f 
+#	2019-04-05	a27ac38efd6dc6dccebfc9bcc475ab4aa5fc4a56
+#	2030-08-14	09f2724a786f76475ef2985cf84f5359c553aade
+#	2037-04-25	12ca45fea91cfbb09df828bea958b47348caee6d
+#
+# So this funkiness elides these commits from the data
+
+linux/linux-commitdata.csv:
+	test -d linux || mkdir linux
+	${MAKE} data
+	awk '
+		/224426f168aa4af3dcb628e6edaa824d32d60e6f/ ||
+		/a27ac38efd6dc6dccebfc9bcc475ab4aa5fc4a56/ ||
+		/09f2724a786f76475ef2985cf84f5359c553aade/ ||
+		/12ca45fea91cfbb09df828bea958b47348caee6d/ {
+			next
+		}
+		{
+			 print $0
+		}
+	' commitdata.csv > linux/linux-commitdata.csv

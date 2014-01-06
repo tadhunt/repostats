@@ -105,7 +105,7 @@ func record_get(infile *csv.Reader) (*Record, error) {
 	return &r, nil
 }
 
-func chart_draw_pchg(path string, nloc []Nloc, span int, width float64, height float64) error {
+func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time, span int, width float64, height float64, codebase string) error {
 	var v plotter.Values
 
 	st := time.Unix(0, 0)
@@ -131,11 +131,15 @@ func chart_draw_pchg(path string, nloc []Nloc, span int, width float64, height f
 			pinc = 0.0
 		}
 
-		v = append(v, pinc)
-
 		sn = cn
 		st = now
 		et = st.AddDate(0, 0, span)
+
+		if now.Before(stime) || now.After(etime) {
+			continue
+		}
+
+		v = append(v, pinc)
 	}
 
 	w := vg.Points(2)
@@ -154,17 +158,38 @@ func chart_draw_pchg(path string, nloc []Nloc, span int, width float64, height f
 		return err
 	}
 
+	if codebase != "" {
+		p.Title.Text = fmt.Sprintf("Percent change in %s per %d day period", codebase, span)
+	} else {
+		p.Title.Text = fmt.Sprintf("Percent change per %d day period", span)
+	}
+	p.X.Label.Text = fmt.Sprintf("%d day periods starting on %v", span, stime)
+	p.Y.Label.Text = "Percentage Change (%)"
+
 	p.Add(bc)
+	p.Add(plotter.NewGrid())
 
 	return p.Save(width, height, path)
 }
 
-func chart_draw_nloc(path string, nloc []Nloc, width float64, height float64) error {
-	pts := make(plotter.XYs, len(nloc))
+/*
+ * XXX - Tad: This should be part of the plotter library
+ */
+type Point struct {
+	X	float64
+	Y	float64
+}
+
+func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time, width float64, height float64, codebase string) error {
+	var pts plotter.XYs
 	for i := 0; i < len(nloc); i++ {
-		pt := &pts[i]
-		pt.X = float64(i)
-		pt.Y = float64(nloc[i].Nloc)
+		now := nloc[i].Date
+
+		if now.Before(stime) || now.After(etime) {
+			continue
+		}
+		pt := Point{float64(i), float64(nloc[i].Nloc)}
+		pts = append(pts, pt)
 	}
 
 	lc, err := plotter.NewLine(pts)
@@ -178,7 +203,16 @@ func chart_draw_nloc(path string, nloc []Nloc, width float64, height float64) er
 		return err
 	}
 
+	if codebase != "" {
+		p.Title.Text = fmt.Sprintf("Total number of lines of code in %s ", codebase)
+	} else {
+		p.Title.Text = "Total number of lines of code per day"
+	}
+	p.X.Label.Text = fmt.Sprintf("Days since %v", stime)
+	p.Y.Label.Text = "Number of lines of code"
+
 	p.Add(lc)
+	p.Add(plotter.NewGrid())
 
 	return p.Save(width, height, path)
 }
@@ -187,16 +221,22 @@ func main() {
 	var inpath string
 	var nlocfile string
 	var pcntfile string
+	var codebase string
 	var pcntspan int
 	var width float64
 	var height float64
+	var firstday int
+	var lastday int
 
 	flag.StringVar(&inpath, "infile", "", "Input path to .csv")
 	flag.StringVar(&nlocfile, "nloc", "", "Output path to num lines of code over time chart (png, pdf, svg, etc)")
+	flag.StringVar(&codebase, "codebase", "", "Name of codebase for chart title")
 	flag.StringVar(&pcntfile, "pcnt", "", "Output path to %change over time chart (png, pdf, svg, etc)")
 	flag.IntVar(&pcntspan, "pspan", 7, "Number of days per data point in the %change chart")
 	flag.Float64Var(&width, "width", 10.0, "Chart width (inches)")
 	flag.Float64Var(&height, "height", 7.5, "Chart height (inches)")
+	flag.IntVar(&firstday, "firstday", 0, "Days since the beginning of the data to start chart on")
+	flag.IntVar(&lastday, "lastday", -1, "Days since the beginning of the data to end the chart on (-1 = end of data)")
 	flag.Parse()
 
 	if inpath == "" {
@@ -206,6 +246,14 @@ func main() {
 	infile, err := reader_setup(inpath)
 	if err != nil {
 		panic(err)
+	}
+
+	if firstday < 0 {
+		panic(errors.New("first day can't start before the data"));
+	}
+
+	if lastday != -1 && lastday < firstday {
+		panic(errors.New("last day comes before first day"))
 	}
 
 	var totnloc int64 = 0
@@ -265,18 +313,33 @@ func main() {
 		curnloc = 0
 	}
 
+	if len(nloc) == 0 {
+		fmt.Printf("WARNING: No records, exiting\n")
+		return
+	}
+
+	stime := nloc[0].Date.AddDate(0, 0, firstday)
+
+	var etime time.Time
+	if lastday == -1 {
+		etime = nloc[len(nloc)-1].Date
+	} else {
+		etime = nloc[0].Date.AddDate(0, 0, lastday)
+	}
+
 	fmt.Printf("Total Days: %d\n", len(nloc))
 	fmt.Printf("Total NLOC %v %v through %v\n", totnloc, nloc[0].Date, nloc[len(nloc)-1].Date)
+	fmt.Printf("Charts start on %v and end on %v\n", stime, etime)
 
 	if nlocfile != "" {
-		err = chart_draw_nloc(nlocfile, nloc, width, height)
+		err = chart_draw_nloc(nlocfile, nloc, stime, etime, width, height, codebase)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	if pcntfile != "" {
-		err = chart_draw_pchg(pcntfile, nloc, pcntspan, width, height)
+		err = chart_draw_pchg(pcntfile, nloc, stime, etime, pcntspan, width, height, codebase)
 		if err != nil {
 			panic(err)
 		}
