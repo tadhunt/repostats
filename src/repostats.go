@@ -11,10 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/plotinum/plot"
-	"code.google.com/p/plotinum/plotter"
-	"code.google.com/p/plotinum/plotutil"
-	"code.google.com/p/plotinum/vg"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
+//	"code.google.com/p/plotinum/plot"
+//	"code.google.com/p/plotinum/plotter"
+//	"code.google.com/p/plotinum/plotutil"
+//	"code.google.com/p/plotinum/vg"
 )
 
 type Record struct {
@@ -105,7 +109,7 @@ func record_get(infile *csv.Reader) (*Record, error) {
 	return &r, nil
 }
 
-func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time, span int, width float64, height float64, codebase string) error {
+func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time, span int, width vg.Length, height vg.Length, codebase string) error {
 	var v plotter.Values
 
 	st := time.Unix(0, 0)
@@ -172,15 +176,7 @@ func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time,
 	return p.Save(width, height, path)
 }
 
-/*
- * XXX - Tad: This should be part of the plotter library
- */
-type Point struct {
-	X	float64
-	Y	float64
-}
-
-func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time, width float64, height float64, codebase string) error {
+func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time, width vg.Length, height vg.Length, codebase string) error {
 	var pts plotter.XYs
 	for i := 0; i < len(nloc); i++ {
 		now := nloc[i].Date
@@ -188,7 +184,7 @@ func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time,
 		if now.Before(stime) || now.After(etime) {
 			continue
 		}
-		pt := Point{float64(i), float64(nloc[i].Nloc)}
+		pt := plotter.XY{float64(i), float64(nloc[i].Nloc)}
 		pts = append(pts, pt)
 	}
 
@@ -223,8 +219,10 @@ func main() {
 	var pcntfile string
 	var codebase string
 	var pcntspan int
-	var width float64
-	var height float64
+	var awidth float64
+	var aheight float64
+	var width vg.Length
+	var height vg.Length
 	var firstday int
 	var lastday int
 
@@ -233,11 +231,14 @@ func main() {
 	flag.StringVar(&codebase, "codebase", "", "Name of codebase for chart title")
 	flag.StringVar(&pcntfile, "pcnt", "", "Output path to %change over time chart (png, pdf, svg, etc)")
 	flag.IntVar(&pcntspan, "pspan", 7, "Number of days per data point in the %change chart")
-	flag.Float64Var(&width, "width", 10.0, "Chart width (inches)")
-	flag.Float64Var(&height, "height", 7.5, "Chart height (inches)")
+	flag.Float64Var(&awidth, "width", 10.0, "Chart width (inches)")
+	flag.Float64Var(&aheight, "height", 7.5, "Chart height (inches)")
 	flag.IntVar(&firstday, "firstday", 0, "Days since the beginning of the data to start chart on")
 	flag.IntVar(&lastday, "lastday", -1, "Days since the beginning of the data to end the chart on (-1 = end of data)")
 	flag.Parse()
+
+	width = vg.Length(awidth)
+	height = vg.Length(height)
 
 	if inpath == "" {
 		panic(errors.New("infile required"))
