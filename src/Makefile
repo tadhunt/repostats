@@ -40,7 +40,7 @@ selfdata:
 	open nloc-over-time.pdf pcnt-chg-over-time.pdf
 
 clean:
-	go clean -cache -modcache -i -r
+	go clean -cache -modcache
 	rm -f repostats *.svg *.png *.pdf commitdata.csv
 
 #
