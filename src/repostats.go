@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 	"strconv"
@@ -13,12 +14,7 @@ import (
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
-//	"code.google.com/p/plotinum/plot"
-//	"code.google.com/p/plotinum/plotter"
-//	"code.google.com/p/plotinum/plotutil"
-//	"code.google.com/p/plotinum/vg"
 )
 
 type Record struct {
@@ -110,7 +106,7 @@ func record_get(infile *csv.Reader) (*Record, error) {
 }
 
 func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time, span int, width vg.Length, height vg.Length, codebase string) error {
-	var v plotter.Values
+	var values plotter.Values
 
 	st := time.Unix(0, 0)
 	et := st.AddDate(0, 0, span)
@@ -128,9 +124,9 @@ func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time,
 		cn := float64(nloc[i].Nloc)
 
 		if sn < cn {
-			pinc = 100 - (sn / cn) * 100.0
-		} else if (sn > cn) {
-			pinc = 100 - (cn / sn) * 100.0
+			pinc = 100 - (sn/cn)*100.0
+		} else if sn > cn {
+			pinc = 100 - (cn/sn)*100.0
 		} else {
 			pinc = 0.0
 		}
@@ -143,19 +139,15 @@ func chart_draw_pchg(path string, nloc []Nloc, stime time.Time, etime time.Time,
 			continue
 		}
 
-		v = append(v, pinc)
+		values = append(values, pinc)
 	}
 
-	w := vg.Points(2)
-
-	bc, err := plotter.NewBarChart(v, w)
+	bc, err := plotter.NewBarChart(values, 1)
 	if err != nil {
 		return err
 	}
-
-	bc.LineStyle.Width = vg.Length(0)
-	bc.Color = plotutil.Color(0)
-	bc.Offset = -w
+	bc.LineStyle.Color = color.RGBA{G: 255, A: 255}	// line
+	bc.Color = color.RGBA{G: 255, A: 255}		// fill
 
 	p, err := plot.New()
 	if err != nil {
@@ -184,15 +176,9 @@ func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time,
 		if now.Before(stime) || now.After(etime) {
 			continue
 		}
-		pt := plotter.XY{float64(i), float64(nloc[i].Nloc)}
+		pt := plotter.XY{X: float64(i), Y: float64(nloc[i].Nloc)}
 		pts = append(pts, pt)
 	}
-
-	lc, err := plotter.NewLine(pts)
-	if err != nil {
-		return err
-	}
-	lc.LineStyle.Width = vg.Points(1)
 
 	p, err := plot.New()
 	if err != nil {
@@ -204,11 +190,21 @@ func chart_draw_nloc(path string, nloc []Nloc, stime time.Time, etime time.Time,
 	} else {
 		p.Title.Text = "Total number of lines of code per day"
 	}
+
 	p.X.Label.Text = fmt.Sprintf("Days since %v", stime)
 	p.Y.Label.Text = "Number of lines of code"
 
-	p.Add(lc)
 	p.Add(plotter.NewGrid())
+
+	line, err := plotter.NewLine(pts)
+	if err != nil {
+		return err
+	}
+
+	line.Color = color.RGBA{G: 255, A: 255}
+	line.Width = vg.Length(1)
+
+	p.Add(line)
 
 	return p.Save(width, height, path)
 }
@@ -219,10 +215,8 @@ func main() {
 	var pcntfile string
 	var codebase string
 	var pcntspan int
-	var awidth float64
-	var aheight float64
-	var width vg.Length
-	var height vg.Length
+	var awidth string
+	var aheight string
 	var firstday int
 	var lastday int
 
@@ -231,14 +225,27 @@ func main() {
 	flag.StringVar(&codebase, "codebase", "", "Name of codebase for chart title")
 	flag.StringVar(&pcntfile, "pcnt", "", "Output path to %change over time chart (png, pdf, svg, etc)")
 	flag.IntVar(&pcntspan, "pspan", 7, "Number of days per data point in the %change chart")
-	flag.Float64Var(&awidth, "width", 10.0, "Chart width (inches)")
-	flag.Float64Var(&aheight, "height", 7.5, "Chart height (inches)")
+	flag.StringVar(&awidth, "width", "10.0in", "Chart width (X.Y{mm, cm, in, pt}, missing unit defauls to postscript pts)")
+	flag.StringVar(&aheight, "height", "7.5in", "Chart height (inches)")
 	flag.IntVar(&firstday, "firstday", 0, "Days since the beginning of the data to start chart on")
 	flag.IntVar(&lastday, "lastday", -1, "Days since the beginning of the data to end the chart on (-1 = end of data)")
 	flag.Parse()
 
-	width = vg.Length(awidth)
-	height = vg.Length(height)
+	if awidth == "" {
+		panic(errors.New("width required"))
+	}
+	width, err := vg.ParseLength(awidth)
+	if err != nil {
+		panic(err)
+	}
+
+	if aheight == "" {
+		panic(errors.New("height required"))
+	}
+	height, err := vg.ParseLength(aheight)
+	if err != nil {
+		panic(err)
+	}
 
 	if inpath == "" {
 		panic(errors.New("infile required"))
@@ -250,7 +257,7 @@ func main() {
 	}
 
 	if firstday < 0 {
-		panic(errors.New("first day can't start before the data"));
+		panic(errors.New("first day can't start before the data"))
 	}
 
 	if lastday != -1 && lastday < firstday {

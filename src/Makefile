@@ -10,9 +10,23 @@ fetch:
 #
 # LC_ALL=C	Fixes processing of the Linux commit history
 #
-data:
+data: data-fetch data-show
+
+data-fetch:
 	@if [ -z "${REPO}" ] ; then echo "set REPO=/path/to/git/repo" 1>&2; exit 1; fi
 	(cd ${REPO} && git log --reverse --numstat --date=short) | awk -f log-massage.awk | LC_ALL=C sort > commitdata.csv
+
+data-show:
+	${BINDIR}/repostats \
+		-infile=commitdata.csv \
+		-nloc="nloc-over-time.pdf" \
+		-pcnt="pcnt-chg-over-time.pdf" \
+		-pspan=1 \
+		-codebase="${REPO}"
+		-firstday=0
+	open nloc-over-time.pdf pcnt-chg-over-time.pdf
+
+
 
 selfdata:
 	git log --reverse --numstat --date=short | awk -f log-massage.awk | LC_ALL=C sort > commitdata.csv
