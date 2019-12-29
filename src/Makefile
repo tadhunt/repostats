@@ -1,7 +1,17 @@
 BINDIR=${HOME}/bin
 
 all:
-	go build -o ${BINDIR}/repostats repostats.go
+	go build -v repostats.go
+
+install: all
+	rm -f ${BINDIR}/repostats && cp repostats ${BINDIR}
+
+clean:
+	go clean -cache -modcache
+	rm -f repostats *.svg *.png *.pdf commitdata.csv
+
+uninstall:
+	rm -f ${BINDIR}/repostats
 
 fetch:
 	go mod init github.com/tadhunt/repostats
@@ -38,10 +48,6 @@ selfdata:
 		-codebase="The Repostats Repository"
 		-firstday=0
 	open nloc-over-time.pdf pcnt-chg-over-time.pdf
-
-clean:
-	go clean -cache -modcache
-	rm -f repostats *.svg *.png *.pdf commitdata.csv
 
 #
 # Valid linux data seems to start about 1,309 days from the first commit
